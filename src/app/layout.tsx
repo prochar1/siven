@@ -13,8 +13,8 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Math 67 Challenge",
-  description: "Zábavná matematická hra pro děti s bonusem 67!",
+  title: "Math Siven Challenge",
+  description: "Zábavná matematická hra s bonusem!",
 };
 
 export default function RootLayout({
@@ -24,7 +24,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${outfit.variable} ${fredoka.variable}`} suppressHydrationWarning>
+      <body
+        className={`${outfit.variable} ${fredoka.variable}`}
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>
