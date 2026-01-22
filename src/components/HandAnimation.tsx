@@ -15,16 +15,23 @@ export default function HandAnimation({
   const [shouldRender, setShouldRender] = useState(isVisible);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
+    let showTimer: ReturnType<typeof setTimeout> | undefined;
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (isVisible) {
-      setShouldRender(true);
-      timer = setTimeout(() => {
-        setShouldRender(false);
-        onComplete?.();
-      }, 3000); // Animation lasts 3 seconds
+      // Defer setting state to avoid synchronous setState inside effect
+      showTimer = setTimeout(() => {
+        setShouldRender(true);
+        hideTimer = setTimeout(() => {
+          setShouldRender(false);
+          onComplete?.();
+        }, 3000); // Animation lasts 3 seconds
+      }, 0);
     }
+
     return () => {
-      if (timer) clearTimeout(timer);
+      if (showTimer) clearTimeout(showTimer);
+      if (hideTimer) clearTimeout(hideTimer);
     };
   }, [isVisible, onComplete]);
 
@@ -56,8 +63,8 @@ export default function HandAnimation({
             >
               {/* Left Hand */}
               <svg
-                width="240"
-                height="240"
+                width="200"
+                height="200"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#FFD700"
@@ -74,8 +81,8 @@ export default function HandAnimation({
 
               {/* Right Hand */}
               <svg
-                width="240"
-                height="240"
+                width="200"
+                height="200"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#FFD700"
@@ -92,11 +99,11 @@ export default function HandAnimation({
             </motion.div>
 
             <motion.h2
-              className="text-[18rem] font-black text-yellow-400 drop-shadow-[0_0_40px_rgba(255,215,0,1)] line-height-1 mt-[-2rem]"
+              className="!text-[24rem] font-black text-yellow-400 drop-shadow-[0_0_40px_rgba(255,215,0,1)] leading-none mt-[-2rem]"
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.5, repeat: Infinity }}
             >
-              67!
+              <span style={{ fontSize: "12rem" }}>67!</span>
             </motion.h2>
 
             <div className="mt-20 px-8 py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 animate-bounce">

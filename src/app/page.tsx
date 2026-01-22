@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateProblem } from "@/utils";
 import { MathProblem } from "@/types";
@@ -10,28 +10,25 @@ import { Trophy, Zap, Clock } from "lucide-react";
 const TIMER_LIMIT = 10;
 
 export default function Game() {
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'gameover'>('start');
+  const [gameState, setGameState] = useState<"start" | "playing" | "gameover">(
+    "start",
+  );
   const [problem, setProblem] = useState<MathProblem | null>(null);
   const [score, setScore] = useState(0);
   const [bonusScore67, setBonusScore67] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIMER_LIMIT);
   const [showAnimation, setShowAnimation] = useState(false);
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [highScore, setHighScore] = useState(0);
-
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [highScore, setHighScore] = useState<number>(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem('math-high-score');
-    if (saved) setHighScore(parseInt(saved));
-  }, []);
-
-  useEffect(() => {
-    if (score > highScore) {
-      setHighScore(score);
-      localStorage.setItem('math-high-score', score.toString());
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("math-high-score");
+      setTimeout(() => {
+        setHighScore(saved ? parseInt(saved) : 0);
+      }, 0);
     }
-  }, [score, highScore]);
+  }, []);
 
   const nextProblem = useCallback(() => {
     setProblem(generateProblem());
@@ -42,28 +39,40 @@ export default function Game() {
   const startGame = () => {
     setScore(0);
     setBonusScore67(0);
-    setGameState('playing');
+    setGameState("playing");
     nextProblem();
   };
 
   const handleAnswer = (selected: number) => {
-    if (!problem || gameState !== 'playing') return;
+    if (!problem || gameState !== "playing") return;
 
     if (selected === problem.answer) {
-      setFeedback('correct');
-      setScore(s => s + 1);
+      setFeedback("correct");
+      setScore((prevScore) => {
+        const newScore = prevScore + 1;
+        setHighScore((prevHigh) => {
+          if (newScore > prevHigh) {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("math-high-score", newScore.toString());
+            }
+            return newScore;
+          }
+          return prevHigh;
+        });
+        return newScore;
+      });
 
       if (selected === 67) {
-        setBonusScore67(b => b + 1);
+        setBonusScore67((b) => b + 1);
         setShowAnimation(true);
       }
 
       // Delay before next problem to show feedback
       setTimeout(nextProblem, 600);
     } else {
-      setFeedback('wrong');
-      // Briefly show wrong and then maybe move on? 
-      // User says "poté se zobrazí další příklad" for the timer, 
+      setFeedback("wrong");
+      // Briefly show wrong and then maybe move on?
+      // User says "poté se zobrazí další příklad" for the timer,
       // but let's say wrong answer also moves to next problem or ends game?
       // Usually kids games move to next one.
       setTimeout(nextProblem, 600);
@@ -72,28 +81,30 @@ export default function Game() {
 
   const handleBonusClick = () => {
     if (bonusScore67 > 0) {
-      setBonusScore67(b => b - 1);
+      setBonusScore67((b) => b - 1);
       setShowAnimation(true);
     }
   };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (gameState === 'playing' && !feedback && timeLeft > 0) {
+    if (gameState === "playing" && !feedback) {
       interval = setInterval(() => {
-        setTimeLeft(t => Math.max(0, t - 0.05));
+        setTimeLeft((t) => Math.max(0, t - 0.05));
       }, 50);
     }
     return () => clearInterval(interval);
   }, [gameState, feedback]);
 
   useEffect(() => {
-    if (timeLeft <= 0 && gameState === 'playing') {
-      nextProblem();
+    if (timeLeft <= 0 && gameState === "playing") {
+      setTimeout(() => {
+        nextProblem();
+      }, 0);
     }
   }, [timeLeft, gameState, nextProblem]);
 
-  if (gameState === 'start') {
+  if (gameState === "start") {
     return (
       <main className="flex flex-col items-center justify-center min-h-screen p-4">
         <motion.div
@@ -101,13 +112,16 @@ export default function Game() {
           animate={{ y: 0, opacity: 1 }}
           className="glass p-8 rounded-3xl text-center max-w-md w-full"
         >
-          <h1 className="text-6xl mb-2 text-pink-500 font-black tracking-tighter">SIVEN</h1>
+          <h1 className="text-6xl mb-2 text-pink-500 font-black tracking-tighter">
+            SIVEN
+          </h1>
           <div className="mb-6 flex justify-center gap-2 items-center text-yellow-400 font-bold">
             <Trophy size={20} />
             <span>Nejlepší skóre: {highScore}</span>
           </div>
           <p className="text-xl mb-8 text-indigo-200 leading-relaxed px-4">
-            Rychlá matematika pro bystré hlavy.<br />
+            Rychlá matematika pro bystré hlavy.
+            <br />
             Dokážeš vyřešit všechny příklady?
           </p>
           <button
@@ -117,7 +131,8 @@ export default function Game() {
             HRÁT!
           </button>
           <p className="text-sm text-indigo-400/60 leading-relaxed">
-            Tato hra používá prohlížeč k uložení vašeho nejlepšího skóre. Žádná data se neodesílají na server.
+            Tato hra používá prohlížeč k uložení vašeho nejlepšího skóre. Žádná
+            data se neodesílají na server.
           </p>
         </motion.div>
         <footer className="mt-8 text-indigo-400/40 text-sm font-medium">
@@ -140,10 +155,17 @@ export default function Game() {
           onClick={handleBonusClick}
           whileTap={{ scale: 0.9 }}
           className="glass px-4 py-2 rounded-2xl flex items-center gap-2 cursor-pointer border-yellow-500/50"
-          style={{ border: bonusScore67 > 0 ? '1px solid #EAB308' : '1px solid transparent' }}
+          style={{
+            border:
+              bonusScore67 > 0 ? "1px solid #EAB308" : "1px solid transparent",
+          }}
         >
-          <Zap className={`${bonusScore67 > 0 ? "text-yellow-400 fill-yellow-400" : "text-gray-500"}`} />
-          <span className={`text-2xl font-bold ${bonusScore67 > 0 ? "text-yellow-400" : "text-gray-500"}`}>
+          <Zap
+            className={`${bonusScore67 > 0 ? "text-yellow-400 fill-yellow-400" : "text-gray-500"}`}
+          />
+          <span
+            className={`text-2xl font-bold ${bonusScore67 > 0 ? "text-yellow-400" : "text-gray-500"}`}
+          >
             {bonusScore67}
           </span>
         </motion.div>
@@ -151,15 +173,24 @@ export default function Game() {
 
       {/* Progress/Timer */}
       <div className="w-full px-4 mt-4">
-        <div className="w-full glass h-6 rounded-full overflow-hidden relative shadow-inner">
-          <motion.div
-            className="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
-            animate={{ width: `${(timeLeft / TIMER_LIMIT) * 100}%` }}
-            transition={{ duration: 0.05, ease: "linear" }}
+        <div
+          className="w-full bg-black/40 rounded-full overflow-hidden relative shadow-inner border-4 border-yellow-400"
+          style={{ height: "2.5rem" }}
+        >
+          <div
+            style={{
+              width: `${(timeLeft / TIMER_LIMIT) * 100}%`,
+              height: "100%",
+              background: "linear-gradient(90deg, #FACC15, #FF477E, #A855F7)",
+              boxShadow: "0 0 15px rgba(255,215,0,0.7)",
+              transition: "width 0.05s linear",
+            }}
           />
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Clock size={14} className="text-white/40 mr-1" />
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Čas běží</span>
+            <Clock size={20} className="text-yellow-400 mr-2" />
+            <span className="text-lg font-black text-yellow-400 uppercase tracking-widest drop-shadow">
+              Čas běží
+            </span>
           </div>
         </div>
       </div>
@@ -193,9 +224,9 @@ export default function Game() {
               onClick={() => handleAnswer(opt)}
               className={`
                 py-6 text-3xl font-bold glass rounded-2xl
-                ${feedback === 'correct' && opt === problem.answer ? 'bg-green-500/40 border-green-400' : ''}
-                ${feedback === 'wrong' && opt !== problem.answer ? 'opacity-50' : ''}
-                ${feedback === 'wrong' && opt === problem.answer ? 'bg-green-500/20' : ''}
+                ${feedback === "correct" && opt === problem.answer ? "bg-green-500/40 border-green-400" : ""}
+                ${feedback === "wrong" && opt !== problem.answer ? "opacity-50" : ""}
+                ${feedback === "wrong" && opt === problem.answer ? "bg-green-500/20" : ""}
               `}
               disabled={!!feedback}
             >
